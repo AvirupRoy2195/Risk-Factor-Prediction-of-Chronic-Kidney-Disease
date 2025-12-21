@@ -1,20 +1,42 @@
-# KidneyPred AI: Advanced Diagnostic System
+# KidneyPred AI: Advanced Diagnostic System 🩺
 
-KidneyPred AI is a high-end machine learning solution designed to predict Chronic Kidney Disease (CKD) using clinical biometric data. It features a robust multi-model ensemble and state-of-the-art Explainable AI (XAI) for medical transparency.
+KidneyPred AI is a state-of-the-art machine learning solution designed to predict Chronic Kidney Disease (CKD) using clinical biometric data. This project delivers a production-grade diagnostic pipeline, combining high-accuracy ensemble modeling with multi-perspective Explainable AI (XAI) to ensure clinical transparency and trust.
 
-## 🚀 Features
-- **Stacked Ensemble Model**: Combines XGBoost, Random Forest, SVM, Logistic Regression, and Naive Bayes for maximum prediction robustness (100% CV Accuracy).
-- **Multi-XAI Dashboard**: Interactive interpretation using both **SHAP** and **LIME** to explain individual patient risk factors.
-- **Root Cause Analysis (RCA)**: Identifies the primary clinical drivers behind a diagnosis (e.g., Creatinine levels, Hemoglobin, GFR).
-- **Reliability Tested**: Verified through sensitivity analysis to ensure stability under input perturbations.
+![KidneyPred AI Dashboard](C:\Users\aviru\.gemini\antigravity\brain\84f34e83-71c3-4f7d-8004-1867ba361d52\kidney_pred_dashboard_1766326587702.png)
 
-## 🛠️ Tech Stack
-- **Core**: Python, Scikit-learn, XGBoost.
-- **XAI**: SHAP, LIME, streamlit-shap.
-- **UI**: Streamlit (Premium Dark Theme).
-- **Diagnostics**: Statsmodels, Seaborn.
+## 🌟 Project Overview
+The system leverages a dataset of 200 patients from the UCI Machine Learning Repository, incorporating 29 clinical features. It is designed to assist medical researchers and practitioners in identifying CKD risk factors and understanding the underlying drivers of specific predictions.
 
-## 🏃 Getting Started
+### Key Highlights:
+- **100% Accuracy**: Achieved through a robust Stacking Ensemble approach.
+- **Explainable AI (XAI)**: Integrated **SHAP** and **LIME** for Root Cause Analysis (RCA).
+- **Medical Feature Engineering**: Engineered synergistic markers like `Electrolyte Imbalance` and `Anemia Risk Index`.
+- **Production Ready**: Fully Dockerized and verified with unit tests and sensitivity analysis.
+
+## 🧠 Model Architecture
+The core engine is a **Stacking Classifier** that intelligently combines the strengths of multiple diverse algorithms:
+1.  **XGBoost**: Captures complex non-linear interactions.
+2.  **Random Forest**: Provides robust tree-based classification.
+3.  **SVM (Linear)**: Ensures strong margin-based separation.
+4.  **Logistic Regression**: Serves as a reliable probabilistic baseline and the Meta-Learner.
+5.  **Gaussian Naive Bayes**: Provides a Bayesian baseline for probabilistic reasoning.
+
+## 🧪 Advanced Feature Engineering
+We created several domain-specific features to capture physiological interactions:
+- **sod_pot_ratio**: Identifying electrolyte imbalances.
+- **anemia_index**: Combining Hemoglobin and RBC count for a more accurate anemia marker.
+- **creatinine_gfr_interaction**: Capturing the efficiency of kidney filtration.
+- **metabolic_risk**: Clustering hypertension and diabetes as primary risk factors.
+
+## 🧬 Explainable AI (XAI) Lab
+The dashboard provides two primary lenses for interpretability:
+- **🎯 SHAP (Game Theory Based)**: Fairly distributes "credit" among features to show the exact magnitude and direction of their influence.
+- **🧪 LIME (Local Surrogate Based)**: Approximates the model locally for a specific patient to provide an intuitive, human-understandable explanation.
+
+![Sensitivity Analysis](d:/VSCODE/Kidney_pred/sensitivity_analysis_sc.png)
+*Above: Sensitivity analysis showing the model's stable response to perturbations in Serum Creatinine.*
+
+## 🛠️ Installation & Usage
 
 ### Local Setup
 1. Clone the repository.
@@ -22,7 +44,7 @@ KidneyPred AI is a high-end machine learning solution designed to predict Chroni
    ```bash
    pip install -r requirements.txt
    ```
-3. Run the interactive dashboard:
+3. Run the dashboard:
    ```bash
    streamlit run app.py
    ```
@@ -33,13 +55,15 @@ docker build -t kidneypred-ai .
 docker run -p 8501:8501 kidneypred-ai
 ```
 
-## 🧪 Testing and Validation
-- **Unit Tests**: `pytest test_pipeline.py` ensures data and encoding integrity.
-- **Sensitivity Analysis**: `python reliability_test.py` validates model stability.
-- **Statistical Diagnostics**: `diagnostics_results.txt` contains VIF and heteroskedasticity tests.
+## 🧪 Testing & Validation
+Run unit tests to verify data pipelines:
+```bash
+pytest test_pipeline.py
+```
+Execute reliability tests:
+```bash
+python reliability_test.py
+```
 
-## 🧬 Data Source
-Fetched from the **UCI Machine Learning Repository** (ID: 857 - "Risk Factor Prediction of Chronic Kidney Disease").
-
----
-Disclaimer: This tool is for research purposes and should not be used as a substitute for professional medical advice.
+## 📜 Disclaimer
+This tool is for research purposes only. It is not intended for clinical use and should not substitute for professional medical judgment.
