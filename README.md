@@ -2,7 +2,7 @@
 
 KidneyPred AI is a state-of-the-art machine learning solution designed to predict Chronic Kidney Disease (CKD) using clinical biometric data. This project delivers a production-grade diagnostic pipeline, combining high-accuracy ensemble modeling with multi-perspective Explainable AI (XAI) to ensure clinical transparency and trust.
 
-![KidneyPred AI Dashboard](C:\Users\aviru\.gemini\antigravity\brain\84f34e83-71c3-4f7d-8004-1867ba361d52\kidney_pred_dashboard_1766326587702.png)
+![KidneyPred AI Dashboard](dashboard_preview.png)
 
 ## 🌟 Project Overview
 The system leverages a dataset of 200 patients from the UCI Machine Learning Repository, incorporating 29 clinical features. It is designed to assist medical researchers and practitioners in identifying CKD risk factors and understanding the underlying drivers of specific predictions.
@@ -33,7 +33,7 @@ The dashboard provides two primary lenses for interpretability:
 - **🎯 SHAP (Game Theory Based)**: Fairly distributes "credit" among features to show the exact magnitude and direction of their influence.
 - **🧪 LIME (Local Surrogate Based)**: Approximates the model locally for a specific patient to provide an intuitive, human-understandable explanation.
 
-![Sensitivity Analysis](d:/VSCODE/Kidney_pred/sensitivity_analysis_sc.png)
+![Sensitivity Analysis](sensitivity_analysis_sc.png)
 *Above: Sensitivity analysis showing the model's stable response to perturbations in Serum Creatinine.*
 
 ## 🛠️ Installation & Usage
