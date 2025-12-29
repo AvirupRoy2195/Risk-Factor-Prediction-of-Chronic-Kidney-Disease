@@ -31,6 +31,14 @@ class ClinicalJudgment:
     evidence_summary: str
 
 
+@dataclass
+class DiagnosisResult:
+    judgment: str
+    evidence: Dict[str, ClinicalEvidence]
+    council_opinions: Optional[Dict[str, str]] = None
+    quality_score: Optional[float] = None
+
+
 class CortexCoordinator:
     """
     Brain-inspired coordinator that makes agents work like an experienced doctor.
@@ -95,6 +103,9 @@ FORMAT YOUR RESPONSE EXACTLY AS:
 PATIENT DATA:
 {patient_data}
 
+DOCUMENT ANALYSIS:
+{document_evidence}
+
 EVIDENCE FROM COGNITIVE LAYERS:
 
 1. ML MODEL (Pattern Recognition):
@@ -116,7 +127,8 @@ Now synthesize all evidence and provide your unified clinical judgment:""")
                         query: str, 
                         patient_data: Dict,
                         ml_prediction: int = None,
-                        ml_probability: float = None) -> Dict[str, ClinicalEvidence]:
+                        ml_probability: float = None,
+                        pdf_context: str = "") -> Dict[str, ClinicalEvidence]:
         """
         Gather evidence from all cognitive layers in PARALLEL.
         """
@@ -147,18 +159,31 @@ Now synthesize all evidence and provide your unified clinical judgment:""")
             confidence=1.0,
             reasoning="Direct lab values and patient history"
         )
+
+        # Document Evidence
+        evidence['document'] = ClinicalEvidence(
+            source="Uploaded Document",
+            finding=pdf_context[:2000] + "..." if pdf_context else "No document provided",
+            confidence=1.0 if pdf_context else 0.0,
+            reasoning="Direct analysis of uploaded report"
+        )
         
         # 2 & 4. Council + Safety in PARALLEL (these are slow)
         def get_council_evidence():
             try:
                 from council import MedicalCouncil
                 council = MedicalCouncil()
-                opinions = council.consult(query, str(patient_data))
-                synthesis = council.synthesize(query, opinions)
+                # Enhanced context
+                council_context = query
+                if pdf_context:
+                    council_context += f"\n\n[ATTACHED REPORT]:\n{pdf_context[:5000]}"
+
+                opinions = council.consult(council_context, str(patient_data))
+                synthesis = council.synthesize(council_context, opinions)
                 return ClinicalEvidence(
                     source="LLM Council (3 specialists)",
-                    finding=synthesis[:500],
-                    confidence=0.85,
+                    finding=synthesis[:800],
+                    confidence=0.9,
                     reasoning="Deliberation between nephrology, diagnosis, and pharmacology experts"
                 )
             except Exception as e:
@@ -173,7 +198,8 @@ Now synthesize all evidence and provide your unified clinical judgment:""")
             try:
                 from safety_agent import SafetyGuardrailAgent
                 safety = SafetyGuardrailAgent()
-                check = safety.validate(query, patient_data)
+                # Safety checks document too
+                check = safety.validate(query + (f"\nReport: {pdf_context[:1000]}" if pdf_context else ""), patient_data)
                 return ClinicalEvidence(
                     source="Safety System",
                     finding="PASSED" if check.passed else f"ISSUES: {', '.join(check.issues)}",
@@ -236,6 +262,7 @@ Now synthesize all evidence and provide your unified clinical judgment:""")
                 self.synthesis_prompt.format_messages(
                     query=query,
                     patient_data=str(patient_data),
+                    document_evidence=evidence['document'].finding,
                     ml_evidence=f"{evidence['ml_model'].finding} (Confidence: {evidence['ml_model'].confidence:.0%})",
                     council_evidence=evidence['council'].finding,
                     data_evidence=evidence['data'].finding,
@@ -246,53 +273,51 @@ Now synthesize all evidence and provide your unified clinical judgment:""")
         except Exception as e:
             return f"Unable to synthesize judgment: {e}"
     
+
     def diagnose(self, 
                  query: str, 
                  patient_data: Dict,
                  ml_prediction: int = None,
                  ml_probability: float = None,
-                 enable_critique: bool = True) -> str:
+                 enable_critique: bool = True,
+                 pdf_context: str = "") -> DiagnosisResult:
         """
         Full cognitive pipeline: gather evidence → synthesize → critique → improve → deliver.
-        
-        This mimics how an experienced doctor thinks:
-        1. Pattern recognition (immediate ML assessment)
-        2. Deep analysis (council deliberation)
-        3. Knowledge retrieval (past cases, guidelines)
-        4. Safety check (contraindications, warnings)
-        5. Integration (unified clinical judgment)
-        6. CRITIQUE & IMPROVE (quality check before delivery)
         """
         # Gather evidence from all cognitive layers
-        evidence = self.gather_evidence(query, patient_data, ml_prediction, ml_probability)
+        evidence = self.gather_evidence(query, patient_data, ml_prediction, ml_probability, pdf_context)
         
         # Synthesize into unified judgment
         judgment = self.synthesize_judgment(query, patient_data, evidence)
         
-        # === JUDGE FEEDBACK LOOP (Anterior Cingulate - Error Monitoring) ===
+        score_val = None
+        
+        # === JUDGE FEEDBACK LOOP ===
         if enable_critique:
             try:
                 from judge_agent import JudgeAgent
                 judge = JudgeAgent()
-                
-                # Score the initial response
                 score = judge.score_response(judgment, query, str(patient_data))
+                score_val = score.overall
                 
-                # If score is below threshold, critique and improve
                 if score.overall < 7.0:
                     critique, improved = judge.critique_and_improve(judgment, query)
-                    
-                    # Return improved version with note
                     judgment = improved + f"\n\n---\n*Quality Score: {score.overall}/10 → Improved*"
                 else:
-                    # Add quality badge
                     judgment = judgment + f"\n\n---\n✅ *Quality Score: {score.overall}/10*"
-                    
-            except Exception as e:
-                # If judge fails, return original judgment
+            except Exception:
                 pass
         
-        return judgment
+        # Extract council opinions if available (kludgy, but needed for UI)
+        # Note: gather_evidence's council call returns a summary. 
+        # We need to modify gather_evidence to return distinct opinions if we want tabs.
+        # For now, we'll return the evidence dict which contains the council summary.
+        
+        return DiagnosisResult(
+            judgment=judgment,
+            evidence=evidence,
+            quality_score=score_val
+        )
 
 
 # Singleton

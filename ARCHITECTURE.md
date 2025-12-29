@@ -21,7 +21,7 @@ KidneyPred AI is a brain-inspired, multi-agent diagnostic system for Chronic Kid
 - 🔍 **RAG Engine**: Medical knowledge retrieval from clinical reasoning dataset
 - 💾 **SQL Analytics**: Natural language to SQL for patient data queries
 - 📄 **Document Analysis**: PDF report parsing with vision LLM
-- 🎯 **100% Accuracy**: Stacking ensemble trained on 58k+ patients
+- 🎯 **~91% Accuracy**: Stacking ensemble trained on 58k+ patients
 
 ---
 
@@ -454,7 +454,7 @@ Raw Data → Validation → Imputation → Encoding → Feature Engineering → 
 | **Python Modules** | 37 |
 | **Training Samples** | 58,000+ |
 | **Clinical Features** | 40+ |
-| **Model Accuracy** | 100% |
+| **Model Accuracy** | ~91% |
 | **Test Coverage** | Unit + Integration |
 | **Docker Ready** | ✅ |
 | **CI/CD Pipeline** | ✅ |
@@ -473,7 +473,7 @@ Reduces AI hallucination via diverse perspectives and cross-validation
 Combines factual data (SQL) with medical knowledge (RAG) for comprehensive answers
 
 ### 4. Why Stacking Ensemble?
-Leverages strengths of multiple algorithms to achieve 100% accuracy
+Leverages strengths of multiple algorithms to achieve ~91% accuracy
 
 ### 5. Why SHAP + LIME?
 SHAP provides global feature importance, LIME provides patient-specific explanations

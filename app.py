@@ -528,61 +528,80 @@ def main():
         should_run_tier2 = deep_research and (has_vitals or has_pdf or has_vision) and consensus != "Error"
         
         if should_run_tier2:
-             with st.status("**Tier 2: LLM Council Deliberation**", expanded=True) as status2:
+             with st.status("**Tier 2: Cortex Coordinator (The Brain)**", expanded=True) as status2:
                 try:
-                    from council import MedicalCouncil
-                    council = MedicalCouncil()
+                    from cortex_coordinator import CortexCoordinator
+                    coordinator = CortexCoordinator()
                     
+                    # Construct Query
                     pat_name = pd_data.get('name', 'Unknown Patient')
-                    case_context = f"Patient: {pat_name}\n"
-                    
+                    analysis_query = f"Comprehensive clinical assessment for patient {pat_name}."
                     if has_vitals:
-                        case_context += f"Model Prediction: {consensus} (Confidence: {confidence:.1%}).\n"
-                        case_context += f"Vitals Summary: {str(pd_data)}\n"
-                    
+                        analysis_query += " Evaluate renal function and associated risks based on vitals."
                     if has_pdf:
-                        case_context += f"\n=== PDF REPORT ANALYSIS ===\n{st.session_state.pdf_text[:5000]}...\n"
-                        
-                    if has_vision:
-                        case_context += f"\n=== MEDICAL IMAGE ANALYSIS ===\n{st.session_state.vision_analysis}\n"
+                        analysis_query += " Incorporate findings from the attached medical report."
                     
-                    st.write("🩺 Dr. Nemotron (Nephrology)...")
-                    st.write("🔍 Dr. Mistral (Differential Dx)...")
-                    st.write("💊 Dr. GLM (Pharmacology)...")
+                    # Run Diagnosis
+                    st.write("🧠 Coordinating Agents (Council, Safety, Documents)...")
+                    result = coordinator.diagnose(
+                        query=analysis_query,
+                        patient_data=pd_data if has_vitals else {},
+                        ml_prediction=consensus if has_vitals else None,
+                        ml_probability=confidence if has_vitals else None,
+                        pdf_context=st.session_state.pdf_text if has_pdf else ""
+                    )
                     
-                    opinions = council.consult(case_context, str(pd_data) if has_vitals else "Refer to Case Context")
-                    
-                    with st.expander("📋 View Council Deliberations", expanded=False):
-                        tab1, tab2, tab3 = st.tabs(["🩺 Dr. Nephro", "🔬 Dr. Diag", "💊 Dr. Pharma"])
-                        with tab1: st.markdown(opinions['nephrologist'])
-                        with tab2: st.markdown(opinions['diagnostician'])
-                        with tab3: st.markdown(opinions['pharmacologist'])
-                    
-                    final_prescription = council.synthesize(case_context, opinions)
-                    # Clean static prompt artifacts
-                    final_prescription = re.sub(r'\*?Quality Score:.*\d+/10.*\*?', '', final_prescription, flags=re.IGNORECASE).strip()
-                    
-                    status2.update(label="**Tier 2 Complete: Prescription Ready**", state="complete", expanded=False)
+                    # --- DISPLAY RESULTS ---
+                    status2.update(label="**Tier 2 Complete: Clinical Judgment Ready**", state="complete", expanded=False)
                     
                     st.markdown("---")
-                    st.subheader("📋 Clinical Prescription")
-                    st.markdown(final_prescription)
                     
-                    # JUDGE AGENT
-                    with st.expander("📊 Quality Evaluation (Agent-as-a-Judge)", expanded=False):
-                        try:
-                            from judge_agent import JudgeAgent
-                            judge = JudgeAgent()
-                            with st.spinner("Evaluating..."):
-                                evaluation = judge.score_response(final_prescription, case_context, str(pd_data))
-                            
-                            c1, c2, c3 = st.columns(3)
-                            c1.metric("Overall", f"{evaluation.overall}/10")
-                            c2.metric("Safety", f"{evaluation.safety}/10")
-                            c3.metric("Accuracy", f"{evaluation.accuracy}/10")
-                            if evaluation.suggestions: st.caption(f"💡 Suggestions: {evaluation.suggestions[:200]}")
-                        except Exception as e:
-                            st.caption(f"Judge unavailable: {e}")
+                    # 1. Main Judgment
+                    st.subheader("🧠 Integrated Clinical Judgment")
+                    st.markdown(f"""
+                    <div style="background-color: rgba(40, 50, 70, 0.5); padding: 20px; border-radius: 10px; border-left: 4px solid #4CAF50;">
+                        {result.judgment}
+                    </div>
+                    """, unsafe_allow_html=True)
+                    
+                    # 2. Evidence Breakdown
+                    with st.expander("📂 Evidence & Agent Deliberations", expanded=False):
+                        # Council Opinions
+                        if 'council' in result.evidence:
+                            st.markdown("### 🏛️ Medical Council")
+                            council_ev = result.evidence['council']
+                            st.info(council_ev.finding)
+                            st.caption(f"Confidence: {council_ev.confidence}")
+                        
+                        # Document Findings
+                        if 'document' in result.evidence and has_pdf:
+                            st.markdown("### 📄 Document Analysis")
+                            doc_ev = result.evidence['document']
+                            st.markdown(doc_ev.finding)
+                        
+                        # ML Findings
+                        if 'ml_model' in result.evidence:
+                            st.markdown("### 🤖 Predictive Models")
+                            ml_ev = result.evidence['ml_model']
+                            st.success(f"Prediction: {ml_ev.finding}")
+
+                        # Safety Checks
+                        if 'safety' in result.evidence:
+                            st.markdown("### 🛡️ Safety & Contraindications")
+                            safe_ev = result.evidence['safety']
+                            st.warning(safe_ev.finding)
+
+                    # 3. Quality Assurance (Judge)
+                    if result.quality_score:
+                        with st.expander("📊 Quality Assurance (Self-Reflection)", expanded=False):
+                             c1, c2 = st.columns([1, 4])
+                             c1.metric("Confidence Score", f"{result.quality_score}/10")
+                             c2.caption("The system self-evaluated this diagnosis for consistency and safety.")
+
+                except Exception as e:
+                    st.error(f"Tier 2 Analysis Error: {e}")
+                    # fallback to basic error display
+                    st.exception(e)
 
                     # SQL AGENT (Only if Vitals present or specific queries needed)
                     # If Has Vitals, query stats.
@@ -929,6 +948,32 @@ Please provide these values or upload your lab report (PDF/image) to auto-extrac
                     except Exception as e:
                         st.caption(f"Web search unavailable: {e}")
 
+                # === GLOBAL CONTEXT BUILDING (Applies to both Deep & Fast modes) ===
+                # 1. Build Conversation History
+                chat_history = ""
+                recent_msgs = st.session_state.messages[-10:]  # Last 5 turns
+                if len(recent_msgs) > 2:
+                    chat_history = "\n--- Recent Conversation ---\n"
+                    # Exclude current message (which is just 'prompt')
+                    for msg in recent_msgs: 
+                        if msg['content'] == prompt: continue
+                        role = "Patient" if msg["role"] == "user" else "Doctor"
+                        chat_history += f"{role}: {msg['content'][:200]}\n"
+                    chat_history += "---\n\n"
+                
+                # 2. Convert session data to string
+                patient_str = str(st.session_state.patient_data)
+                
+                # 3. Construct Context-Aware Prompt
+                prompt_with_context = f"{chat_history}Current Question: {prompt}\n\nPatient Data: {patient_str}"
+                
+                # 4. Inject Uploaded Evidence (PDF/Vision)
+                if 'pdf_text' in st.session_state and st.session_state.pdf_text:
+                    prompt_with_context += f"\n\n[ATTACHED PDF REPORT CONTENT]:\n{st.session_state.pdf_text[:4000]}..." # Truncate to avoid context overflow
+                
+                if 'vision_analysis' in st.session_state and st.session_state.vision_analysis:
+                    prompt_with_context += f"\n\n[ATTACHED IMAGE ANALYSIS]:\n{st.session_state.vision_analysis}"
+
                 # C. Reasoning / Deep Research
                 if deep_research:
                      # Council Deliberation (The "Subconscious Mind" of the Doctor)
@@ -936,30 +981,6 @@ Please provide these values or upload your lab report (PDF/image) to auto-extrac
                         from council import MedicalCouncil
                         council = MedicalCouncil()
                         
-                        # === BUILD CONVERSATION HISTORY CONTEXT ===
-                        # Get last 5 messages for context
-                        chat_history = ""
-                        recent_msgs = st.session_state.messages[-10:]  # Last 5 turns
-                        if len(recent_msgs) > 2:
-                            chat_history = "\n--- Recent Conversation ---\n"
-                            for msg in recent_msgs[:-1]:  # Exclude current message
-                                role = "Patient" if msg["role"] == "user" else "Doctor"
-                                chat_history += f"{role}: {msg['content'][:200]}\n"
-                            chat_history += "---\n\n"
-                        
-                        # Convert session data to string for the agents
-                        patient_str = str(st.session_state.patient_data)
-                        
-                        # Include history in prompt
-                        prompt_with_context = f"{chat_history}Current Question: {prompt}"
-                        
-                        # === INJECT UPLOADED EVIDENCE ===
-                        if 'pdf_text' in st.session_state and st.session_state.pdf_text:
-                            prompt_with_context += f"\n\n[ATTACHED PDF REPORT CONTENT]:\n{st.session_state.pdf_text[:4000]}..." # Truncate to avoid context overflow
-                            
-                        if 'vision_analysis' in st.session_state and st.session_state.vision_analysis:
-                            prompt_with_context += f"\n\n[ATTACHED IMAGE ANALYSIS]:\n{st.session_state.vision_analysis}"
-
                         # 1. Deliberation Phase
                         with st.status("🧠 Council of LLMs Deliberating...", expanded=True) as status:
                             st.write("Dr. Nemotron (Nephrology) is analyzing...")
@@ -1002,12 +1023,14 @@ Please provide these values or upload your lab report (PDF/image) to auto-extrac
                             ml_prob = st.session_state.prob
                             
                             # Full cognitive synthesis (use contextualized prompt)
-                            response = cortex.diagnose(
+                            diagnosis_result = cortex.diagnose(
                                 prompt_with_context,  # Include conversation history
                                 st.session_state.patient_data,
                                 ml_prediction=ml_pred,
                                 ml_probability=ml_prob
                             )
+                            # Extract the judgment string from the DiagnosisResult object
+                            response = diagnosis_result.judgment
                             
                             synth_status.update(label="✅ Clinical Judgment Ready", state="complete", expanded=False)
                         st.markdown(clean_llm_output(response))
@@ -1065,12 +1088,13 @@ Please provide these values or upload your lab report (PDF/image) to auto-extrac
                         st.error(f"Council Error: {e}")
                         # Fallback to simple RAG
                         engine = RAGEngine()
-                        response = engine.chat_reasoning(prompt, [], None)
+                        response = engine.chat_reasoning(prompt_with_context, [], None)
                         st.markdown(clean_llm_output(response))
                 else:
                     # FAST / SIMPLE MODE (Single LLM or purely heuristic)
+                    # NOW AWARE OF CONTEXT (History, PDF, Data) because we pass prompt_with_context!
                     engine = RAGEngine()
-                    response = engine.chat_reasoning(prompt, [], None)
+                    response = engine.chat_reasoning(prompt_with_context, [], None)
                     st.markdown(clean_llm_output(response))
                 
                 # D. Proactive Inference Check
