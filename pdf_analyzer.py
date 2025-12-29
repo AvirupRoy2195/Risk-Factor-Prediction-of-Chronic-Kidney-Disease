@@ -27,8 +27,9 @@ class PDFAnalyzer:
         self.text_splitter = SemanticChunker(self.embeddings)
         
         # Initialize LLM for entity extraction
+        # Using Gemini Flash 2.0 (via OpenRouter) for superior context handling and reliable JSON
         self.llm = ChatOpenAI(
-            model="nvidia/nemotron-3-nano-30b-a3b:free", 
+            model="google/gemini-2.0-flash-exp:free", 
             temperature=0, 
             base_url="https://openrouter.ai/api/v1",
             api_key=self.api_key
@@ -72,22 +73,25 @@ class PDFAnalyzer:
     def extract_clinical_entities(self, text):
         """Uses LLM to extract clinical parameters from the text."""
         prompt = ChatPromptTemplate.from_template("""
-        You are a medical data extraction agent. Extract the following clinical parameters from the medical report text provided.
-        If a value is not found, return null. 
-        Ensure specific gravity (sg) is one of [1.005, 1.010, 1.015, 1.020, 1.025].
-        Ensure binary values (rbc, pc, pcc, ba, htn, dm, cad, appet, pe, ane) are mapped to the expected categories.
+        You are a medical data extraction agent. Extract clinical parameters and patient metadata from the medical report text.
         
+        CRITICAL INSTRUCTIONS:
+        1. Look for Header Info like "Customer Name : Mr. X", "Age/Gender : 69/Male", "Date : 10/Dec/2025".
+        2. Handle table rows where values might be separated by whitespace (e.g. "Creatinine 1.2 0.5-1.5").
+        3. Convert units if necessary to standard formats (mg/dL for Creatinine).
+        4. If a value is NOT found, return null.
+
         Expected Parameters (JSON Keys must match EXACTLY):
-        - name (Patient Name - extract full name found)
+        - name (Patient Name - extract full name found, remove titles like Mr./Mrs. if possible)
         - gender (Male/Female)
         - report_date (Date of report)
         - report_id (Lab ID or Order ID)
         - sample_type (Sample type if mentioned)
-        - age (Age in years)
-        - bp (Diastolic Blood Pressure - integer, e.g., 80)
-        - sg (Specific Gravity: 1.005, 1.010, 1.015, 1.020, 1.025)
-        - al (Albumin: 0, 1, 2, 3, 4, 5)
-        - su (Sugar: 0, 1, 2, 3, 4, 5)
+        - age (Age in years, integer)
+        - bp (Diastolic Blood Pressure - integer, e.g., 80. If given as 120/80, take 80)
+        - sg (Specific Gravity: 1.005-1.030)
+        - al (Albumin: 0-5 scale. If text says 'Trace', 'Nil', map to 0. If '+', '++', map to 1, 2)
+        - su (Sugar: 0-5 scale. 'Nil'->0, 'Trace'->0, '+'->1)
         - rbc (Red Blood Cells: 'normal' or 'abnormal')
         - pc (Pus Cell: 'normal' or 'abnormal')
         - pcc (Pus Cell Clumps: 'present' or 'notpresent')
@@ -109,10 +113,10 @@ class PDFAnalyzer:
         - ane (Anemia: 'yes' or 'no')
         - grf (GFR / eGFR)
         
-        Text:
+        Text to Analyze:
         {text}
 
-        Return the result ONLY as a JSON object. Ensure values like 'normal' are lowercase.
+        Return the result ONLY as a JSON object.
         """)
 
         chain = prompt | self.llm | JsonOutputParser()

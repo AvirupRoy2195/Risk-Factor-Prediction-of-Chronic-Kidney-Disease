@@ -43,7 +43,7 @@ Your job is to:
 RESPOND IN THIS EXACT JSON FORMAT:
 {
     "original_query": "the user's original question",
-    "intent": "one of: diagnosis, prognosis, treatment, diet, medication, lifestyle, emergency, general_question",
+    "intent": "one of: diagnosis, prognosis, treatment, diet, medication, lifestyle, emergency, document_analysis, general_question",
     "refined_query": "a clearer, more medically-precise version of the question",
     "search_keywords": "3-5 keywords for web search, space-separated",
     "medical_entities": ["list", "of", "medical", "terms"],
@@ -59,6 +59,17 @@ Q: "how long does a patient survive after he is diagnosed with ckd"
     "refined_query": "What is the life expectancy and survival rate for patients diagnosed with chronic kidney disease (CKD) by stage?",
     "search_keywords": "CKD survival rate prognosis life expectancy stage",
     "medical_entities": ["CKD", "chronic kidney disease", "survival", "prognosis"],
+    "requires_patient_data": true,
+    "urgency": "medium"
+}
+
+Q: "analyze the uploaded lab report"
+{
+    "original_query": "analyze the uploaded lab report",
+    "intent": "document_analysis",
+    "refined_query": "Interpret the clinical biomarkers and findings from the attached patient medical report in the context of kidney health.",
+    "search_keywords": "medical report analysis lab values interpretation",
+    "medical_entities": ["lab report", "analysis"],
     "requires_patient_data": true,
     "urgency": "medium"
 }

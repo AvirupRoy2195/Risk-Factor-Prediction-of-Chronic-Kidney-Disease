@@ -193,6 +193,9 @@ def main():
             st.success("🔬 Deep analysis enabled")
         else:
             st.caption("Quick RAG-based responses")
+            
+        if 'pdf_text' in st.session_state and st.session_state.pdf_text:
+             st.success(f"📄 PDF Active ({len(st.session_state.pdf_text)} chars)")
     
     # Hidden analyze button flag (auto-triggered by chat)
     analyze_btn = False  # Will be triggered by chat when patient data exists
@@ -253,6 +256,10 @@ def main():
                         st.session_state.document_chunks = chunk_texts
                         st.info(f"✅ Created {len(chunk_texts)} semantic chunks")
                         
+                        # Debug Indicator
+                        if 'pdf_text' in st.session_state:
+                            st.sidebar.success(f"📄 PDF Loaded ({len(st.session_state.pdf_text)} chars)")
+                        
                         # Show preview
                         with st.expander("📋 PDF Text Preview", expanded=False):
                             st.text(all_text[:2000] + ("..." if len(all_text) > 2000 else ""))
@@ -260,7 +267,9 @@ def main():
                         st.session_state.report_index = "Loaded"
                         
                     except Exception as e:
-                        st.error(f"PDF parsing error: {e}")
+                        st.error(f"PDF parsing error: {str(e)}")
+                        import traceback
+                        st.error(traceback.format_exc())
                         st.session_state.report_index = "Loaded"
             
             # ===============================
