@@ -27,3 +27,8 @@ datasets
 huggingface_hub
 langchain-openai
 sentence-transformers
+open_clip_torch
+Pillow
+duckduckgo-search
+tiktoken
+pydantic

@@ -48,29 +48,42 @@ def engineer_features():
         # No BUN in this dataset list, but we have Uric Acid? Skip BU.
         df4_mapped['hemo'] = df4['Hemoglobin (g/dL)']
         
-        # 'Albumin (g/dL)' is SERUM albumin (normal ~4), our model expects URINE (0-5).
-        # Mismatch risk: High serum (4) is good, High urine (4) is bad. 
-        # Do NOT map. Leave 'al' as NaN (to be imputed).
+        # LANCET INSIGHT: Serum Albumin is a critical predictor (nutritional marker)
+        # We map it to a NEW feature 'serum_al' to distinguish from 'al' (urine)
+        df4_mapped['serum_al'] = df4['Albumin (g/dL)']
         
         df4_mapped['bgr'] = df4['Glucose (mg/dL)']
         
-        # DM/HTN
-        # Checking values: probably numeric or strings? 
-        # 'Diabetic Retinopathy' implies DM, but dataset map likely has 'Diabetes' logic?
-        # Actually list showed 'Hypertension', 'Coronary Artery Disease'. 
-        # But 'Diabetes' column was NOT in the loop print? 
-        # Wait, I missed it? 'Diabetic Retinopathy' is there. 'HbA1c' is there.
-        # 'Metformin'/'Insulin' usage implies Diabetes.
-        # Let's derive DM: If Insulin==Yes OR Metformin==Yes OR HbA1c > 6.5 -> DM=yes.
-        # Or simpler: if 'Glucose' > 140?
-        # Let's check Hypertension column directly.
+        # --- NEW RICH FEATURES ---
+        # Lipids
+        df4_mapped['chol'] = df4['Cholesterol (mg/dL)']
+        df4_mapped['tg'] = df4['Triglyceride (mg/dL)']
+        df4_mapped['ldl'] = df4['LDL-C (mg/dL)']
+        df4_mapped['hdl'] = df4['HDL-C (mg/dL)']
+        
+        # Minerals
+        df4_mapped['ua'] = df4['Uric Acid (mg/dL)']
+        df4_mapped['ca'] = df4['Calcium (mg/dL)']
+        df4_mapped['phos'] = df4['Phosphate (mg/dL)']
+        
+        # Long-term Sugar
+        df4_mapped['hba1c'] = df4['HbA1c (%)']
+        
+        # Medications (Binary 0/1)
+        # Assuming dataset uses "Yes"/"No" or 1/0
+        def map_bin(x):
+            if isinstance(x, str):
+                return 1 if x.lower() in ['yes', 'true', '1'] else 0
+            return 1 if x == 1 else 0
+
+        df4_mapped['statin'] = df4['Statin'].apply(map_bin)
+        df4_mapped['metformin'] = df4['Metformin'].apply(map_bin)
+        df4_mapped['insulin'] = df4['Insulin'].apply(map_bin)
+        df4_mapped['nsaid'] = df4['NSAID'].apply(map_bin)
+        
+        # -------------------------
         
         df4_mapped['htn'] = df4['Hypertension'].replace({1: 'yes', 0: 'no', 'Yes': 'yes', 'No': 'no'})
-        
-        # Derive DM from Glucose if specific DM col missing (List didn't show 'Diabetes')
-        # However, 'Diabetic Retinopathy' is highly specific.
-        # Let's use HbA1c if available > 6.5?
-        # For simplicity in this iteration, let's map Hypertension and Cad.
         df4_mapped['cad'] = df4['Coronary Artery Disease'].replace({1: 'yes', 0: 'no'})
         
         df4_mapped['class'] = df4['ESRD Risk'].map({'Yes': 'ckd', 'No': 'notckd'})
@@ -108,7 +121,7 @@ def engineer_features():
         df[col] = df[col].replace({'nan': np.nan, 'None': np.nan, 'nan': np.nan})
 
     # Columns where we expect numbers
-    expected_num = ['age', 'bp', 'sg', 'al', 'su', 'bgr', 'bu', 'sc', 'sod', 'pot', 'hemo', 'pcv', 'wbcc', 'rbcc']
+    expected_num = ['age', 'bp', 'sg', 'al', 'su', 'bgr', 'bu', 'sc', 'sod', 'pot', 'hemo', 'pcv', 'wbcc', 'rbcc', 'chol', 'tg', 'ldl', 'hdl', 'ua', 'ca', 'phos', 'hba1c', 'serum_al']
     for col in expected_num:
         if col in df.columns:
             df[col] = pd.to_numeric(df[col], errors='coerce')
@@ -136,6 +149,9 @@ def engineer_features():
     # 3. Advanced Feature Creation
     print("Creating new features...")
     
+    # Initialize encoders dict for persistence
+    encoders = {}
+    
     # Safely create features
     if 'sod' in df.columns and 'pot' in df.columns:
         df['sod_pot_ratio'] = df['sod'] / (df['pot'] + 1e-6)
@@ -144,12 +160,16 @@ def engineer_features():
         df['anemia_index'] = df['hemo'] * df['rbcc']
     
     # Metabolic Risk: Interaction between Hypertension and Diabetes
-    # Only if present
+    # CRITICAL FIX: Use separate encoders to prevent overwriting!
     if 'htn' in df.columns and 'dm' in df.columns:
-        le = LabelEncoder()
-        df['htn_num'] = le.fit_transform(df['htn'].astype(str))
-        df['dm_num'] = le.fit_transform(df['dm'].astype(str))
+        le_htn = LabelEncoder()
+        le_dm = LabelEncoder()
+        df['htn_num'] = le_htn.fit_transform(df['htn'].astype(str))
+        df['dm_num'] = le_dm.fit_transform(df['dm'].astype(str))
         df['metabolic_risk'] = df['htn_num'] * df['dm_num']
+        # Store separately in encoders dict for persistence
+        encoders['htn_num'] = le_htn
+        encoders['dm_num'] = le_dm
     
     # 4. Binning
     print("Binning features...")
@@ -162,7 +182,7 @@ def engineer_features():
 
     # 5. Final Encoding and Scaling
     current_cat = df.select_dtypes(exclude=['number']).columns
-    encoders = {}
+    # Add to existing encoders dict (don't reinitialize!)
     for col in current_cat:
         le_col = LabelEncoder()
         df[col] = le_col.fit_transform(df[col].astype(str))
@@ -193,7 +213,11 @@ def engineer_features():
     joblib.dump(num_imputer, 'num_imputer.joblib')
     joblib.dump(cat_imputer, 'cat_imputer.joblib')
     
-    print("Success! Engineered data and objects saved.")
+    # CRITICAL: Save feature column order for consistent inference
+    joblib.dump(list(X_df.columns), 'feature_columns.joblib')
+    print(f\"✅ Saved {len(X_df.columns)} feature columns to 'feature_columns.joblib'\")
+    
+    print(\"Success! Engineered data and objects saved.\")
 
 if __name__ == "__main__":
     engineer_features()

@@ -33,8 +33,10 @@ We systematically perturb key features like `Serum Creatinine` to ensure the mod
 ![Sensitivity Analysis](sensitivity_analysis_sc.png)
 
 ### Learning Curves
-Our model shows high generalization capability, converging to 100% accuracy with minimal variance across various training set sizes.
+Our model shows strong generalization capability with ~87% accuracy on properly held-out test data.
 ![Learning Curves](learning_curves.png)
+
+> ⚠️ **Important**: This is a research tool only. All predictions should be validated by qualified healthcare professionals.
 
 ---
 

@@ -12,7 +12,7 @@ KidneyPred AI is a state-of-the-art machine learning solution designed to predic
 The system leverages a massive dataset of **58,000+ patients** (D4 ESRD + UCI), incorporating **40+ clinical features**. It is designed to assist medical researchers and practitioners in identifying CKD risk factors and understanding the underlying drivers of specific predictions.
 
 ### Key Highlights:
-- **100% Accuracy**: Achieved through a robust Stacking Ensemble approach trained on 58k records.
+- **~87% Accuracy**: Achieved through robust Stacking Ensemble with proper train/test validation on 58k records.
 - **Deep Intelligence**: Now integrates **Advanced Metabolic Markers** (Lipids, Minerals, HbA1c) and **Medication History**.
 - **Explainable AI (XAI)**: Integrated **SHAP** and **LIME** for Root Cause Analysis (RCA).
 - **Medical Feature Engineering**: Engineered synergistic markers like `Electrolyte Imbalance` and `Anemia Risk Index`.
@@ -85,9 +85,12 @@ python overfitting_check.py
 ```
 
 ### 🛡️ Overfitting & Generalization Report
-We formally verified the model's robustness to ensure the **100% accuracy** is a genuine reflection of clinical signals:
-- **Learning Curves**: Training and Validation scores converge perfectly at 1.0, indicating the model has fully captured the dataset's patterns without overfitting.
-- **Repeated CV**: 10-fold cross-validation repeated 3 times (30 trials) yielded a standard deviation of **0.00**, confirming absolute stability.
+We formally verified the model's robustness using proper validation methodology:
+- **Learning Curves**: Training and Validation scores converge, indicating the model generalizes well without overfitting.
+- **Proper Validation**: SMOTE applied only to training data to prevent test set contamination.
+- **Honest Metrics**: ~87% accuracy on held-out test data (not affected by data augmentation).
+
+> ⚠️ **Note**: Earlier versions reported higher accuracy (~95-100%) due to SMOTE being applied before train/test split. Current metrics reflect true generalization performance.
 
 ![Learning Curves](learning_curves.png)
 

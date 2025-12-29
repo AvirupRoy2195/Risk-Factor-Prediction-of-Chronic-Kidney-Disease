@@ -1,9 +1,9 @@
 import pandas as pd
 import numpy as np
 import xgboost as xgb
-from sklearn.ensemble import RandomForestClassifier, VotingClassifier, StackingClassifier
+from sklearn.ensemble import RandomForestClassifier, VotingClassifier, StackingClassifier, HistGradientBoostingClassifier
 from sklearn.linear_model import LogisticRegression
-from sklearn.svm import SVC
+# SVM removed - too slow for 58k records
 from sklearn.naive_bayes import GaussianNB
 from sklearn.model_selection import StratifiedKFold, cross_val_score, train_test_split
 from sklearn.metrics import classification_report, accuracy_score
@@ -17,13 +17,13 @@ def run_ensemble_benchmark():
     X = pd.read_csv('X_engineered.csv')
     y = pd.read_csv('y_labels.csv').values.ravel()
     
-    # 2. Define Base Models
+    # 2. Define Base Models (Fast Only - No SVM)
     models = {
         'Logistic Regression': LogisticRegression(max_iter=1000),
-        'Random Forest': RandomForestClassifier(n_estimators=100, random_state=42),
-        'XGBoost': xgb.XGBClassifier(n_estimators=100, random_state=42, use_label_encoder=False, eval_metric='logloss'),
-        'SVM': SVC(probability=True, kernel='linear', random_state=42),
-        'Naive Bayes (Bayesian)': GaussianNB()
+        'Random Forest': RandomForestClassifier(n_estimators=100, random_state=42, n_jobs=-1),
+        'XGBoost': xgb.XGBClassifier(n_estimators=100, random_state=42, eval_metric='logloss', n_jobs=-1),
+        'HistGradientBoosting': HistGradientBoostingClassifier(max_iter=100, random_state=42),
+        'Naive Bayes': GaussianNB()
     }
     
     # 3. Cross-Validation Comparison

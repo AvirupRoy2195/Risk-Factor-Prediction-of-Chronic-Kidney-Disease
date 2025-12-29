@@ -12,22 +12,53 @@ from langchain_core.documents import Document
 from tqdm import tqdm
 
 class RAGEngine:
-    def __init__(self, index_path="vector_store/faiss_index"):
+    def __init__(self, index_path="vector_store/faiss_index", max_history=10):
         self.index_path = index_path
-        # Use BGE embeddings as requested
-        self.embeddings = HuggingFaceEmbeddings(
-            model_name="BAAI/bge-small-en-v1.5",
-            model_kwargs={'device': 'cpu'},
-            encode_kwargs={'normalize_embeddings': True}
-        )
+        self.max_history = max_history
+        
+        # Conversation memory (list of HumanMessage/AIMessage)
+        self.conversation_history = []
+        
+        # LAZY LOADING: Don't load embeddings until needed
+        self._embeddings = None
         self.vector_store = None
-        # Initialize OpenRouter GPT-5.2 for Chat
+        
+        # Initialize OpenRouter LLM
         self.llm = ChatOpenAI(
             model="nvidia/nemotron-3-nano-30b-a3b:free", 
             temperature=0.3,
             base_url="https://openrouter.ai/api/v1",
             api_key=os.getenv("OPENROUTER_API_KEY")
         )
+    
+    def add_to_memory(self, user_message: str, ai_response: str):
+        """Add a conversation turn to memory."""
+        self.conversation_history.append(HumanMessage(content=user_message))
+        self.conversation_history.append(AIMessage(content=ai_response))
+        
+        # Trim to max history (keep last N turns)
+        if len(self.conversation_history) > self.max_history * 2:
+            self.conversation_history = self.conversation_history[-(self.max_history * 2):]
+    
+    def get_history(self):
+        """Get conversation history for context."""
+        return self.conversation_history
+    
+    def clear_history(self):
+        """Clear conversation memory."""
+        self.conversation_history = []
+    
+    @property
+    def embeddings(self):
+        """Lazy-load embeddings only when first needed."""
+        if self._embeddings is None:
+            print("📥 Loading embeddings model (first use)...")
+            self._embeddings = HuggingFaceEmbeddings(
+                model_name="BAAI/bge-small-en-v1.5",
+                model_kwargs={'device': 'cpu'},
+                encode_kwargs={'normalize_embeddings': True}
+            )
+        return self._embeddings
 
     def build_index(self, max_samples=2000):
         """Downloads a subset of the dataset and indexes kidney-related clinical reasoning."""
@@ -125,19 +156,30 @@ class RAGEngine:
             (lambda x: x["input"])
         )
 
-        # --- 2. Dual Retrieval Logic ---
+        # --- 2. Dual Retrieval Logic (PARALLEL) ---
         def retrieve_combined(query):
-            # 1. Knowledge Base Docs
-            docs = retriever_kb.invoke(query)
+            from concurrent.futures import ThreadPoolExecutor
             
-            # 2. Report Docs (if available)
-            if report_vector_store:
-                report_retriever = report_vector_store.as_retriever(search_kwargs={"k": 3})
-                report_docs = report_retriever.invoke(query)
-                # Label them clearly
-                for d in report_docs:
-                    d.page_content = f"[PATIENT REPORT]: {d.page_content}"
-                docs.extend(report_docs)
+            # Define retrieval tasks
+            def get_kb_docs():
+                return retriever_kb.invoke(query)
+            
+            def get_report_docs():
+                if report_vector_store:
+                    report_retriever = report_vector_store.as_retriever(search_kwargs={"k": 3})
+                    report_docs = report_retriever.invoke(query)
+                    for d in report_docs:
+                        d.page_content = f"[PATIENT REPORT]: {d.page_content}"
+                    return report_docs
+                return []
+            
+            # Execute in parallel
+            with ThreadPoolExecutor(max_workers=2) as executor:
+                future_kb = executor.submit(get_kb_docs)
+                future_report = executor.submit(get_report_docs)
+                
+                docs = future_kb.result()
+                docs.extend(future_report.result())
             
             return docs
 
@@ -158,7 +200,22 @@ class RAGEngine:
         )
 
         def format_docs(docs):
-            return "\n\n".join(doc.page_content for doc in docs)
+            """Format retrieved docs, translating any non-English content."""
+            from translator import translate_to_english
+            
+            formatted = []
+            for doc in docs:
+                content = doc.page_content
+                
+                # Translate if appears non-English (quick heuristic + LLM)
+                translated, lang, was_translated = translate_to_english(content[:500])
+                
+                if was_translated:
+                    formatted.append(f"[Translated from {lang}]: {translated}")
+                else:
+                    formatted.append(content)
+            
+            return "\n\n".join(formatted)
 
         rag_chain = (
             RunnablePassthrough.assign(

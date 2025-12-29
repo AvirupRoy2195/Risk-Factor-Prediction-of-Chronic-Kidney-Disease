@@ -29,43 +29,91 @@ def train_model():
     print(f"Data shape: {X.shape}")
 
     # 3. Model Training (with SMOTE and Balancing)
-    # Handle Imbalance
+    # CRITICAL FIX: Split FIRST, then apply SMOTE only to training data
+    # This prevents test set contamination and inflated metrics
+    X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, random_state=42, stratify=y)
+    
+    print(f"Original train size: {len(X_train)}, Test size: {len(X_test)}")
+    
+    # Handle Imbalance - ONLY on training data
     try:
         from imblearn.over_sampling import SMOTE
-        print("balancing classes with SMOTE...")
+        print("Balancing training classes with SMOTE (test set unchanged)...")
         smote = SMOTE(random_state=42)
-        X_resampled, y_resampled = smote.fit_resample(X, y)
+        X_train, y_train = smote.fit_resample(X_train, y_train)
+        print(f"After SMOTE train size: {len(X_train)} (test still: {len(X_test)})")
     except ImportError:
-        print("⚠️ 'imblearn' not installed. Proceeding with standard split (using class_weight).")
-        X_resampled, y_resampled = X, y
-
-    X_train, X_test, y_train, y_test = train_test_split(X_resampled, y_resampled, test_size=0.2, random_state=42)
+        print("⚠️ 'imblearn' not installed. Proceeding with class_weight balancing.")
 
     # Define Base Learners (Optimized for probabilities)
+    # 1. XGBoost (Gradient Boosting - Fast execution O(n log n))
+    # 2. HistGradientBoosting (LightGBM inspired - Fast implementation from sklearn)
+    # 3. RandomForest (Parallelized with n_jobs=-1)
+    
+    from xgboost import XGBClassifier
+    from sklearn.ensemble import HistGradientBoostingClassifier
+    
+    # ==========================================
+    # FAST MODEL (XGBoost Only - <1s inference)
+    # ==========================================
+    print("\n--- Training FAST MODEL (XGBoost) ---")
+    fast_model = XGBClassifier(
+        n_estimators=150,  # Slightly fewer for speed
+        learning_rate=0.1,  # Faster convergence
+        max_depth=6,
+        n_jobs=-1,
+        eval_metric='logloss',
+        random_state=42
+    )
+    fast_model.fit(X_train, y_train)
+    fast_acc = accuracy_score(y_test, fast_model.predict(X_test))
+    print(f"✅ Fast Model Accuracy: {fast_acc:.4f}")
+    joblib.dump(fast_model, 'fast_model.joblib')
+    print("✅ Fast Model saved to 'fast_model.joblib'")
+
+    # ==========================================
+    # DEEP THINK MODEL (Stacking Ensemble)
+    # ==========================================
+    print("\n--- Training DEEP THINK MODEL (Stacking Ensemble) ---")
     base_learners = [
-        ('rf', RandomForestClassifier(n_estimators=100, random_state=42, class_weight='balanced')),
-        ('svm', SVC(probability=True, random_state=42, class_weight='balanced')),
-        ('knn', KNeighborsClassifier(n_neighbors=5))
+        ('xgb', XGBClassifier(
+            n_estimators=200, 
+            learning_rate=0.05, 
+            max_depth=5, 
+            n_jobs=-1,
+            eval_metric='logloss',
+            random_state=42
+        )),
+        ('hgb', HistGradientBoostingClassifier(
+            max_iter=200,
+            learning_rate=0.05,
+            random_state=42
+        )),
+        ('rf', RandomForestClassifier(
+            n_estimators=100, 
+            class_weight='balanced', 
+            n_jobs=-1,
+            random_state=42
+        ))
     ]
 
-    # Stacking Classifier
-    print("\nTraining Stacking Ensemble (RF + SVM + KNN -> LR)...")
     stacking_model = StackingClassifier(
         estimators=base_learners,
-        final_estimator=LogisticRegression(class_weight='balanced'),
-        cv=5
+        final_estimator=LogisticRegression(class_weight='balanced', max_iter=1000),
+        cv=3,
+        n_jobs=-1
     )
     
     stacking_model.fit(X_train, y_train)
     y_pred = stacking_model.predict(X_test)
     
-    acc = accuracy_score(y_test, y_pred)
-    print(f"Stacking Ensemble Accuracy: {acc:.4f}")
+    deep_acc = accuracy_score(y_test, y_pred)
+    print(f"✅ Stacking Ensemble Accuracy: {deep_acc:.4f}")
     print(classification_report(y_test, y_pred))
 
     # Save the robust model
     joblib.dump(stacking_model, 'stacking_model.joblib')
-    print("✅ Model saved to 'stacking_model.joblib'")
+    print("✅ Stacking Model saved to 'stacking_model.joblib'")
 
     # Standalone RF for Feature Importance
     rf_feat = RandomForestClassifier(n_estimators=100, random_state=42)
@@ -80,7 +128,8 @@ def train_model():
     # Save results to a file
     with open('model_results.txt', 'w') as f:
         f.write("--- MODEL PERFORMANCE ---\n")
-        f.write(f"Stacking Ensemble Accuracy: {acc}\n")
+        f.write(f"Fast Model Accuracy: {fast_acc}\n")
+        f.write(f"Stacking Ensemble Accuracy: {deep_acc}\n")
         f.write("\nClassification Report:\n")
         f.write(classification_report(y_test, y_pred))
         f.write("\n--- FEATURE IMPORTANCE ---\n")
