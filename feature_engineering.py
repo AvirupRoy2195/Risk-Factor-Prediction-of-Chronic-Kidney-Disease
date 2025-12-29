@@ -1,7 +1,7 @@
 import pandas as pd
 import numpy as np
 from ucimlrepo import fetch_ucirepo
-from sklearn.impute import SimpleImputer
+from sklearn.impute import SimpleImputer, KNNImputer
 from sklearn.preprocessing import LabelEncoder, StandardScaler
 import joblib
 import os
@@ -134,11 +134,26 @@ def engineer_features():
     print(f"Num cols: {len(num_cols)}, Cat cols: {len(cat_cols)}")
     
     # 2. Imputation
-    num_imputer = SimpleImputer(strategy='mean', keep_empty_features=True)
+    # 2. Imputation (USER REQUEST: KNN)
+    impute_method = "knn" 
+    # Logic: Scale -> KNN -> Inverse Scale (Critical to avoid 'wbcc' dominating 'sc')
     if not num_cols.empty:
-        imputed_num = num_imputer.fit_transform(df[num_cols])
-        print(f"Imputed num shape: {imputed_num.shape}")
-        df[num_cols] = imputed_num
+        if impute_method == "knn":
+            print("Using KNN Imputation (n=5) with Scaling...")
+            scaler_temp = StandardScaler()
+            knn = KNNImputer(n_neighbors=5)
+            
+            # Fit transform with scaling
+            scaled_vals = scaler_temp.fit_transform(df[num_cols])
+            imputed_scaled = knn.fit_transform(scaled_vals)
+            imputed_vals = scaler_temp.inverse_transform(imputed_scaled)
+            
+            df[num_cols] = pd.DataFrame(imputed_vals, columns=num_cols, index=df.index)
+            num_imputer = knn # For persistence
+        else:
+            num_imputer = SimpleImputer(strategy='mean', keep_empty_features=True)
+            imputed_num = num_imputer.fit_transform(df[num_cols])
+            df[num_cols] = imputed_num
     
     cat_imputer = SimpleImputer(strategy='most_frequent', keep_empty_features=True)
     if not cat_cols.empty:
@@ -170,6 +185,8 @@ def engineer_features():
         # Store separately in encoders dict for persistence
         encoders['htn_num'] = le_htn
         encoders['dm_num'] = le_dm
+        # FIX VIF: Drop redundant columns (htn/dm) after encoding
+        df.drop(columns=['htn', 'dm'], inplace=True, errors='ignore')
     
     # 4. Binning
     print("Binning features...")

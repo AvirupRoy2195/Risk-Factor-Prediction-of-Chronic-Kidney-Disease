@@ -47,3 +47,9 @@ Our model shows strong generalization capability with ~87% accuracy on properly 
 
 ---
 *Created by Avirup Roy - Powered by Advanced Agentic Coding.*
+
+## Phase 4: Release Notes
+- **PDF Export**: Professional reports via ReportLab.
+- **Robustness**: Vitals/PDF/Vision independent analysis.
+- **Knowledge**: RAG with 'Kidney Beginnings'.
+- **Validation**: SQL Agent cross-reference.

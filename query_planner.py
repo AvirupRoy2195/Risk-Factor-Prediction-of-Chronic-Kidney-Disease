@@ -43,7 +43,9 @@ class QueryPlanner:
             # Patient descriptions that need analysis
             r'\b(patient|patient is|years? old|yrs old|male|female)\b',
             r'\b(history of|with history|diabetes|hypertension|dialysis)\b',
-            r'\b(analyze|assess|evaluate|check|review)\b',
+            r'\b(analyze|assess|evaluate|check|review|interpret)\b',
+            r'\b(document|report|pdf|file|upload|attachment)\b',
+            r'\b(lab result|test result|blood work|scan|image)\b',
         ]
         
         self.simple_patterns = [

@@ -1,1 +1,36 @@
 --- MODEL PERFORMANCE ---
+Fast Model Accuracy: 0.9140625
+Stacking Ensemble Accuracy: 0.9100713315217391
+
+Classification Report:
+              precision    recall  f1-score   support
+
+           0       0.91      0.99      0.95     10475
+           1       0.83      0.23      0.36      1301
+
+    accuracy                           0.91     11776
+   macro avg       0.87      0.61      0.66     11776
+weighted avg       0.90      0.91      0.89     11776
+
+--- FEATURE IMPORTANCE ---
+          feature  importance
+11             sc    0.080967
+2              sg    0.070572
+1              bp    0.060197
+10             bu    0.053874
+4              su    0.053622
+3              al    0.045529
+17           rbcc    0.041920
+14           hemo    0.036350
+36   anemia_index    0.033635
+15            pcv    0.031637
+28             ca    0.031197
+29           phos    0.028761
+22       serum_al    0.028191
+26            hdl    0.027971
+23           chol    0.027461
+30          hba1c    0.027456
+35  sod_pot_ratio    0.027285
+12            sod    0.026862
+27             ua    0.026610
+9             bgr    0.026549

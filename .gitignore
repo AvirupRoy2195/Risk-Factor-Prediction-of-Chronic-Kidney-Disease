@@ -2,3 +2,6 @@ __pycache__/
 *.joblib
 .pytest_cache/
 test_results/
+
+.env
+vector_store/
