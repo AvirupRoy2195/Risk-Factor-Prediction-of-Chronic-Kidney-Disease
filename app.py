@@ -200,7 +200,13 @@ def main():
     # File Upload Area (Prominent)
     with st.expander("📂 Upload Medical Reports (PDF/Image)", expanded=True):
         uploaded_file = st.file_uploader("Drop your lab report here to auto-fill data", type=['pdf', 'png', 'jpg', 'jpeg'])
-        if uploaded_file and st.session_state.report_index is None:
+        # Force re-process if we have file but no text (handling legacy state or clears)
+        should_process = uploaded_file and (
+            st.session_state.report_index is None or 
+            ('pdf' in uploaded_file.type and 'pdf_text' not in st.session_state)
+        )
+        
+        if should_process:
             file_bytes = uploaded_file.read()
             file_type = uploaded_file.type
             st.session_state.uploaded_image_bytes = file_bytes
@@ -209,32 +215,43 @@ def main():
             # PATH 1: PDF PROCESSING (Text Extraction)
             # ===============================
             if 'pdf' in file_type:
-                with st.spinner("📄 Extracting text from PDF..."):
+                with st.spinner("📄 Extracting text from PDF (using LLM-enhanced parser)..."):
                     try:
-                        from document_parser import SemanticDocumentParser
-                        parser = SemanticDocumentParser(max_chunk_tokens=512)
+                        from pdf_analyzer import PDFAnalyzer
+                        parser = PDFAnalyzer()
                         
-                        # Extract text and chunk semantically
-                        chunks = parser.parse_pdf(file_bytes)
-                        all_text = " ".join([c.content for c in chunks])
+                        # Extract text
+                        all_text = parser.extract_text_from_bytes(file_bytes)
+                        st.session_state.pdf_text = all_text
                         
-                        # Extract medical entities
-                        entities = parser.extract_medical_entities(all_text)
+                        # Extract medical entities & metadata
+                        entities = parser.extract_clinical_entities(all_text)
                         
                         # Update patient data
                         if entities:
                             entity_map = {
                                 'creatinine': 'sc', 'gfr': 'grf', 'hemoglobin': 'hemo',
-                                'albumin': 'al', 'potassium': 'pot', 'sodium': 'sod', 'bp_diastolic': 'bp'
+                                'albumin': 'al', 'potassium': 'pot', 'sodium': 'sod', 'bp': 'bp',
+                                'name': 'name', 'gender': 'gender', 'report_date': 'report_date',
+                                'report_id': 'report_id', 'sample_type': 'sample_type',
+                                'age': 'age'
                             }
+                            
+                            updated_count = 0
                             for key, val in entities.items():
-                                if key in entity_map:
+                                if key in entity_map and val is not None:
+                                    # Handle numeric conversions if needed, though LLM usually returns correct types
                                     st.session_state.patient_data[entity_map[key]] = val
-                            st.success(f"📊 **Extracted from PDF:** {entities}")
+                                    updated_count += 1
+                                    
+                            st.success(f"📊 Extracted {updated_count} fields (Metadata & Vitals)")
+                            with st.expander("Parsed Data", expanded=False):
+                                st.json(entities)
                         
-                        # Store for RAG
-                        st.session_state.document_chunks = chunks
-                        st.info(f"✅ Created {len(chunks)} semantic chunks")
+                        # Create Semantic Chunks for RAG
+                        chunk_texts = parser.get_semantic_chunks(all_text)
+                        st.session_state.document_chunks = chunk_texts
+                        st.info(f"✅ Created {len(chunk_texts)} semantic chunks")
                         
                         # Show preview
                         with st.expander("📋 PDF Text Preview", expanded=False):
@@ -340,14 +357,12 @@ def main():
 
         with t3:
             u1, u2, u3 = st.columns(3)
-            # Handle float SG properly using format
-            sg_opts = [1.005, 1.010, 1.015, 1.020, 1.025]
-            curr_sg = float(pat.get('sg', 1.020))
-            if curr_sg not in sg_opts: curr_sg = 1.020
-            pat['sg'] = u1.selectbox("Specific Gravity", sg_opts, index=sg_opts.index(curr_sg))
+            # Specific Gravity: Allow precise input (1.000 - 1.050)
+            pat['sg'] = u1.number_input("Specific Gravity", 1.000, 1.050, float(pat.get('sg', 1.020)), step=0.005, format="%.3f")
             
-            pat['al'] = u2.selectbox("Albumin (Urine)", [0, 1, 2, 3, 4, 5], index=int(pat.get('al', 0)))
-            pat['su'] = u3.selectbox("Sugar (Urine)", [0, 1, 2, 3, 4, 5], index=int(pat.get('su', 0)))
+            # Albumin & Sugar: 0-5 scale
+            pat['al'] = u2.number_input("Albumin (Urine)", 0.0, 5.0, float(pat.get('al', 0.0)), step=1.0)
+            pat['su'] = u3.number_input("Sugar (Urine)", 0.0, 5.0, float(pat.get('su', 0.0)), step=1.0)
             
             u4, u5 = st.columns(2)
             pat['rbc'] = u4.selectbox("Red Blood Cells", ["normal", "abnormal"], index=["normal", "abnormal"].index(pat.get('rbc', 'normal')))

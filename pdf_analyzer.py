@@ -42,6 +42,15 @@ class PDFAnalyzer:
             text += page.extract_text() + "\n"
         return text
 
+    def extract_text_from_bytes(self, pdf_bytes):
+        """Extracts text from PDF bytes stream."""
+        from io import BytesIO
+        reader = PdfReader(BytesIO(pdf_bytes))
+        text = ""
+        for page in reader.pages:
+            text += page.extract_text() + "\n"
+        return text
+
     def get_semantic_chunks(self, text):
         """Splits text into semantically meaningful chunks."""
         chunks = self.text_splitter.create_documents([text])
@@ -69,6 +78,11 @@ class PDFAnalyzer:
         Ensure binary values (rbc, pc, pcc, ba, htn, dm, cad, appet, pe, ane) are mapped to the expected categories.
         
         Expected Parameters (JSON Keys must match EXACTLY):
+        - name (Patient Name - extract full name found)
+        - gender (Male/Female)
+        - report_date (Date of report)
+        - report_id (Lab ID or Order ID)
+        - sample_type (Sample type if mentioned)
         - age (Age in years)
         - bp (Diastolic Blood Pressure - integer, e.g., 80)
         - sg (Specific Gravity: 1.005, 1.010, 1.015, 1.020, 1.025)
