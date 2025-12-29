@@ -83,6 +83,12 @@ Model shows strong generalization with ~91% accuracy on held-out test data.
 - **Context-Aware Chat**: PDFs and patient data visible in all chat modes
 - **DiagnosisResult**: Structured output with judgment, evidence, and quality score
 
+### Phase 7-8: RL Feedback & Agentic Learning
+- **RLFeedbackAgent**: LLM-based pattern analysis and weighted reward shaping
+- **Reward Weights**: Safety (40%), Accuracy (30%), Helpfulness (20%), Evidence (10%)
+- **Failure Analysis**: Low-score responses auto-queued for LLM improvement
+- **Training Export**: `export_training_data(min_score=7.0)` for fine-tuning
+
 ### Phase 4: Production Features
 - **PDF Export**: Professional reports via ReportLab
 - **Robustness**: Vitals/PDF/Vision independent analysis

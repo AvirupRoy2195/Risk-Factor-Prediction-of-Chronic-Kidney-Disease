@@ -57,7 +57,11 @@ graph TB
         SAFETY[Safety Agent<br/>safety_agent.py]
         JUDGE[Judge Agent<br/>judge_agent.py]
         FEEDBACK[Feedback Agent<br/>feedback_agent.py]
+        RL[RL Feedback Agent<br/>rl_feedback.py]
     end
+    
+    subgraph "Report Generation"
+        REPORT_GEN[Report Generator<br/>report_generator.py]
     
     subgraph "Document Processing"
         PDF[PDF Analyzer<br/>pdf_analyzer.py]
@@ -125,6 +129,9 @@ graph TB
     ORCH --> RAG
     ORCH --> FEEDBACK
     
+    JUDGE --> RL
+    RL --> REPORT_GEN
+    
     MODEL --> FE
     FE --> PIPE
 
@@ -133,6 +140,7 @@ graph TB
     style RAG fill:#51cf66,stroke:#2f9e44,color:#fff
     style SQL fill:#ffd43b,stroke:#f59f00,color:#000
     style MODEL fill:#ff8787,stroke:#e03131,color:#fff
+    style RL fill:#be4bdb,stroke:#9c36b5,color:#fff
 ```
 
 ---
@@ -263,6 +271,40 @@ flowchart TD
     style VECTOR fill:#51cf66,stroke:#2f9e44,color:#fff
 ```
 
+### 4. RL Feedback Loop
+
+```mermaid
+flowchart LR
+    RESPONSE[AI Response] --> JUDGE[Judge Agent]
+    JUDGE --> SCORE[Quality Score<br/>0-10]
+    
+    SCORE --> STORE[Store Feedback<br/>rl_feedback.py]
+    
+    STORE --> REWARD[Calculate<br/>Reward Signal]
+    
+    subgraph "Reward Weights"
+        SAFETY_W[Safety: 40%]
+        ACCURACY_W[Accuracy: 30%]
+        HELP_W[Helpfulness: 20%]
+        EVIDENCE_W[Evidence: 10%]
+    end
+    
+    REWARD --> CHECK{Score < 6?}
+    
+    CHECK -->|Yes| QUEUE[Queue for<br/>Improvement]
+    CHECK -->|No| LOG[Log to<br/>Training Data]
+    
+    QUEUE --> ANALYZE[LLM Pattern<br/>Analysis]
+    ANALYZE --> IMPROVE[Generate<br/>Improved Prompt]
+    IMPROVE --> APPLY[Apply to<br/>Future Queries]
+    
+    LOG --> EXPORT[Export for<br/>Fine-tuning]
+
+    style JUDGE fill:#4c6ef5,stroke:#364fc7,color:#fff
+    style STORE fill:#be4bdb,stroke:#9c36b5,color:#fff
+    style ANALYZE fill:#ff6b6b,stroke:#c92a2a,color:#fff
+```
+
 ---
 
 ## Component Details
@@ -356,6 +398,31 @@ flowchart TD
 1. **Plan**: Break down patient case into research tasks
 2. **Execute**: Parallel RAG queries with feedback loop
 3. **Synthesize**: Combine into comprehensive report
+
+#### 8. RL Feedback Agent (`rl_feedback.py`)
+**Purpose**: Agentic reinforcement learning system for continuous improvement
+
+**Capabilities**:
+- **Pattern Recognition**: LLM analyzes low-scoring responses to find failure modes
+- **Weighted Reward Shaping**: Safety (40%), Accuracy (30%), Helpfulness (20%), Evidence (10%)
+- **Prompt Improvement**: Generates better prompts for failed queries
+- **Training Export**: Exports high-quality data for fine-tuning
+
+**Key Methods**:
+- `store_feedback()`: Stores quality scores and calculates reward signals
+- `analyze_failure_patterns()`: LLM-based pattern analysis
+- `generate_improved_prompt()`: Creates better system prompts
+- `export_training_data()`: Exports for model fine-tuning
+
+#### 9. Report Generator (`report_generator.py`)
+**Purpose**: Professional PDF report generation
+
+**Features**:
+- Medical report formatting with ReportLab
+- Chat transcript export
+- Markdown to PDF conversion
+- Emoji sanitization for proper rendering
+- Structured sections (headers, bullets, tables)
 
 ---
 
@@ -451,10 +518,11 @@ Raw Data → Validation → Imputation → Encoding → Feature Engineering → 
 
 | Metric | Value |
 |--------|-------|
-| **Python Modules** | 37 |
+| **Python Modules** | 40+ |
 | **Training Samples** | 58,000+ |
 | **Clinical Features** | 40+ |
 | **Model Accuracy** | ~91% |
+| **LLM Agents** | 8 (Cortex, Council, RAG, SQL, Safety, Judge, Feedback, RL) |
 | **Test Coverage** | Unit + Integration |
 | **Docker Ready** | ✅ |
 | **CI/CD Pipeline** | ✅ |
@@ -513,10 +581,13 @@ See [`config.yaml`](config.yaml) for system configuration:
 
 ## Future Enhancements
 
+- [x] Agentic RL Feedback System
+- [x] PDF Report Export
+- [x] Context-Aware Chat (PDF in all modes)
 - [ ] Multi-modal inputs (lab images, ultrasound)
 - [ ] Real-time monitoring dashboard
 - [ ] Integration with EHR systems
-- [ ] Fine-tuned medical LLM
+- [ ] Fine-tuned medical LLM (using RL training data)
 - [ ] Federated learning for privacy
 - [ ] Mobile app deployment
 
