@@ -62,6 +62,7 @@ graph TB
     
     subgraph "Report Generation"
         REPORT_GEN[Report Generator<br/>report_generator.py]
+    end
     
     subgraph "Document Processing"
         PDF[PDF Analyzer<br/>pdf_analyzer.py]
