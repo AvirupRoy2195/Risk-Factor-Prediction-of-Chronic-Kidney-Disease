@@ -2,7 +2,7 @@
 
 KidneyPred AI is a state-of-the-art machine learning solution designed to predict Chronic Kidney Disease (CKD) using clinical biometric data. This project delivers a production-grade diagnostic pipeline, combining high-accuracy ensemble modeling with multi-perspective Explainable AI (XAI) to ensure clinical transparency and trust.
 
-![KidneyPred AI Dashboard](dashboard_preview.png)
+![KidneyPred AI Dashboard](dashboard_ui_v2.png)
 
 ## 📚 Documentation
 - **[System Architecture](ARCHITECTURE.md)**: Comprehensive technical documentation with architecture diagrams, process flows, and component details
@@ -14,6 +14,7 @@ The system leverages a massive dataset of **58,000+ patients** (D4 ESRD + UCI), 
 ### Key Highlights:
 - **~87% Accuracy**: Achieved through robust Stacking Ensemble with proper train/test validation on 58k records.
 - **Deep Intelligence**: Now integrates **Advanced Metabolic Markers** (Lipids, Minerals, HbA1c) and **Medication History**.
+- **Gemini 2.0 Parsing**: Automated extraction of patient metadata and lab values from PDF reports using Google's SOTA multimodal model.
 - **Explainable AI (XAI)**: Integrated **SHAP** and **LIME** for Root Cause Analysis (RCA).
 - **Medical Feature Engineering**: Engineered synergistic markers like `Electrolyte Imbalance` and `Anemia Risk Index`.
 - **Production Ready**: Fully Dockerized and verified with unit tests and sensitivity analysis.
@@ -35,7 +36,7 @@ The system uses a **brain-inspired multi-agent architecture** that mimics human 
 - **🔍 RAG Engine**: Medical knowledge retrieval from clinical reasoning datasets
 - **💾 SQL Agent**: Natural language to SQL for patient data analytics
 - **🎯 Query Planner**: Intelligent routing (simple/sql/rag/council/hybrid)
-- **📄 Document Analyzer**: PDF/image parsing with vision LLM
+- **📄 Document Analyzer**: Powered by **Gemini Flash 2.0**, extracts structured data (Name, Vitals, Metadata) from raw PDF reports with high precision.
 
 **→ See [ARCHITECTURE.md](ARCHITECTURE.md) for detailed diagrams and component documentation**
 
