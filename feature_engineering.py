@@ -215,9 +215,9 @@ def engineer_features():
     
     # CRITICAL: Save feature column order for consistent inference
     joblib.dump(list(X_df.columns), 'feature_columns.joblib')
-    print(f\"✅ Saved {len(X_df.columns)} feature columns to 'feature_columns.joblib'\")
+    print(f"✅ Saved {len(X_df.columns)} feature columns to 'feature_columns.joblib'")
     
-    print(\"Success! Engineered data and objects saved.\")
+    print("Success! Engineered data and objects saved.")
 
 if __name__ == "__main__":
     engineer_features()
