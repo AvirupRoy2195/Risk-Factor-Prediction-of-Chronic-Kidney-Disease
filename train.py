@@ -4,85 +4,87 @@ from ucimlrepo import fetch_ucirepo
 from sklearn.model_selection import train_test_split
 from sklearn.preprocessing import LabelEncoder, StandardScaler
 from sklearn.impute import SimpleImputer
-from sklearn.ensemble import RandomForestClassifier
+from sklearn.ensemble import RandomForestClassifier, StackingClassifier
 from sklearn.linear_model import LogisticRegression
+from sklearn.svm import SVC
+from sklearn.neighbors import KNeighborsClassifier
 from sklearn.metrics import classification_report, accuracy_score, confusion_matrix
 import matplotlib.pyplot as plt
 import seaborn as sns
+import joblib
 
 def train_model():
     # 1. Fetch data
     print("Fetching dataset...")
-    risk_factor_prediction_of_chronic_kidney_disease = fetch_ucirepo(id=857)
-    X = risk_factor_prediction_of_chronic_kidney_disease.data.features
-    y = risk_factor_prediction_of_chronic_kidney_disease.data.targets
+    # NOTE: In a real scenario, we should use the engineered data from feature_engineering.py
+    # But for consistency with the current flow, we'll load the processed X_engineered.csv if available
+    try:
+        print("Loading engineered features...")
+        X = pd.read_csv('X_engineered.csv')
+        y = pd.read_csv('y_labels.csv').values.ravel()
+    except FileNotFoundError:
+        print("Engineered data not found. Please run feature_engineering.py first.")
+        return
 
-    # Combine features and targets for preprocessing
-    df = X.copy()
-    df['target'] = y
+    print(f"Data shape: {X.shape}")
 
-    print(f"Initial shape: {df.shape}")
+    # 3. Model Training (with SMOTE and Balancing)
+    # Handle Imbalance
+    try:
+        from imblearn.over_sampling import SMOTE
+        print("balancing classes with SMOTE...")
+        smote = SMOTE(random_state=42)
+        X_resampled, y_resampled = smote.fit_resample(X, y)
+    except ImportError:
+        print("⚠️ 'imblearn' not installed. Proceeding with standard split (using class_weight).")
+        X_resampled, y_resampled = X, y
 
-    # 2. Preprocessing
-    # Handle missing values
-    # For numerical, use mean; for categorical, use most frequent
-    num_cols = df.select_dtypes(include=['number']).columns
-    cat_cols = df.select_dtypes(exclude=['number']).columns
+    X_train, X_test, y_train, y_test = train_test_split(X_resampled, y_resampled, test_size=0.2, random_state=42)
 
-    num_imputer = SimpleImputer(strategy='mean')
-    df[num_cols] = num_imputer.fit_transform(df[num_cols])
+    # Define Base Learners (Optimized for probabilities)
+    base_learners = [
+        ('rf', RandomForestClassifier(n_estimators=100, random_state=42, class_weight='balanced')),
+        ('svm', SVC(probability=True, random_state=42, class_weight='balanced')),
+        ('knn', KNeighborsClassifier(n_neighbors=5))
+    ]
 
-    if len(cat_cols) > 0:
-        cat_imputer = SimpleImputer(strategy='most_frequent')
-        df[cat_cols] = cat_imputer.fit_transform(df[cat_cols])
-
-    # Encode categorical variables
-    le = LabelEncoder()
-    for col in cat_cols:
-        df[col] = le.fit_transform(df[col])
-
-    # 3. Model Training
-    X_processed = df.drop('target', axis=1)
-    y_processed = df['target']
-
-    X_train, X_test, y_train, y_test = train_test_split(X_processed, y_processed, test_size=0.2, random_state=42)
-
-    # Scale numeric features
-    scaler = StandardScaler()
-    X_train = scaler.fit_transform(X_train)
-    X_test = scaler.transform(X_test)
-
-    # Logistic Regression
-    print("\nTraining Logistic Regression...")
-    lr = LogisticRegression()
-    lr.fit(X_train, y_train)
-    lr_pred = lr.predict(X_test)
-    print("Logistic Regression Accuracy:", accuracy_score(y_test, lr_pred))
-    print(classification_report(y_test, lr_pred))
-
-    # Random Forest
-    print("\nTraining Random Forest...")
-    rf = RandomForestClassifier(n_estimators=100, random_state=42)
-    rf.fit(X_train, y_train)
-    rf_pred = rf.predict(X_test)
-    print("Random Forest Accuracy:", accuracy_score(y_test, rf_pred))
-    print(classification_report(y_test, rf_pred))
-
-    # 4. Feature Importance (Random Forest)
-    importances = rf.feature_importances_
-    feature_names = X_processed.columns
-    feature_importance_df = pd.DataFrame({'feature': feature_names, 'importance': importances}).sort_values(by='importance', ascending=False)
+    # Stacking Classifier
+    print("\nTraining Stacking Ensemble (RF + SVM + KNN -> LR)...")
+    stacking_model = StackingClassifier(
+        estimators=base_learners,
+        final_estimator=LogisticRegression(class_weight='balanced'),
+        cv=5
+    )
     
-    print("\nTop 10 Important Features:")
-    print(feature_importance_df.head(10))
+    stacking_model.fit(X_train, y_train)
+    y_pred = stacking_model.predict(X_test)
+    
+    acc = accuracy_score(y_test, y_pred)
+    print(f"Stacking Ensemble Accuracy: {acc:.4f}")
+    print(classification_report(y_test, y_pred))
 
+    # Save the robust model
+    joblib.dump(stacking_model, 'stacking_model.joblib')
+    print("✅ Model saved to 'stacking_model.joblib'")
+
+    # Standalone RF for Feature Importance
+    rf_feat = RandomForestClassifier(n_estimators=100, random_state=42)
+    rf_feat.fit(X_train, y_train)
+    importances = rf_feat.feature_importances_
+    feature_names = X.columns
+    feat_df = pd.DataFrame({'feature': feature_names, 'importance': importances}).sort_values(by='importance', ascending=False)
+    
+    print("\nTop 15 Important Features:")
+    print(feat_df.head(15))
+    
     # Save results to a file
     with open('model_results.txt', 'w') as f:
         f.write("--- MODEL PERFORMANCE ---\n")
-        f.write(f"Logistic Regression Accuracy: {accuracy_score(y_test, lr_pred)}\n")
-        f.write(f"Random Forest Accuracy: {accuracy_score(y_test, rf_pred)}\n")
-        f.write("\nTop 10 Features:\n")
-        f.write(feature_importance_df.head(10).to_string())
+        f.write(f"Stacking Ensemble Accuracy: {acc}\n")
+        f.write("\nClassification Report:\n")
+        f.write(classification_report(y_test, y_pred))
+        f.write("\n--- FEATURE IMPORTANCE ---\n")
+        f.write(feat_df.head(20).to_string())
 
 if __name__ == "__main__":
     train_model()

@@ -1,0 +1,19 @@
+app:
+  title: "KidneyPred AI"
+  version: "2.0"
+  model_path: "stacking_model.joblib"
+  training_data: "X_engineered.csv"
+  log_file: "inference_logs.csv"
+
+monitoring:
+  drift_threshold: 0.1
+  window_size: 50
+
+features:
+  important:
+    - "sc"
+    - "hemo"
+    - "pcv"
+    - "al"
+    - "htn_num"
+    - "dm_num"

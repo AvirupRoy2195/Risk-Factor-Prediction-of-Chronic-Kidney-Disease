@@ -1,0 +1,18 @@
+--- ENSEMBLE AND CV BENCHMARK ---
+Logistic Regression       1.0
+Random Forest             1.0
+XGBoost                   1.0
+SVM                       1.0
+Naive Bayes (Bayesian)    1.0
+Voting Ensemble           1.0
+Stacking Ensemble         1.0
+
+Final Stacking Report:
+              precision    recall  f1-score   support
+
+           0       1.00      1.00      1.00        25
+           1       1.00      1.00      1.00        15
+
+    accuracy                           1.00        40
+   macro avg       1.00      1.00      1.00        40
+weighted avg       1.00      1.00      1.00        40

@@ -1,0 +1,35 @@
+--- MODEL PERFORMANCE ---
+Stacking Ensemble Accuracy: 0.9967405475880052
+
+Classification Report:
+              precision    recall  f1-score   support
+
+           0       1.00      0.99      1.00       762
+           1       0.99      1.00      1.00       772
+
+    accuracy                           1.00      1534
+   macro avg       1.00      1.00      1.00      1534
+weighted avg       1.00      1.00      1.00      1534
+
+--- FEATURE IMPORTANCE ---
+         feature  importance
+11            sc    0.355639
+3             al    0.301320
+10            bu    0.242017
+25  anemia_index    0.019801
+2             sg    0.017549
+14          hemo    0.015392
+15           pcv    0.010463
+0            age    0.005505
+9            bgr    0.004977
+21         appet    0.003208
+1             bp    0.003185
+4             su    0.003160
+17          rbcc    0.002732
+30        bp_bin    0.002510
+12           sod    0.001528
+22            pe    0.001470
+29       age_bin    0.001342
+6             pc    0.001314
+19            dm    0.000954
+27        dm_num    0.000907

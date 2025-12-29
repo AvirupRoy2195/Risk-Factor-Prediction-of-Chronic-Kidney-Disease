@@ -4,11 +4,16 @@ KidneyPred AI is a state-of-the-art machine learning solution designed to predic
 
 ![KidneyPred AI Dashboard](dashboard_preview.png)
 
+## 📚 Documentation
+- **[System Architecture](ARCHITECTURE.md)**: Comprehensive technical documentation with architecture diagrams, process flows, and component details
+- **[Visual Walkthrough](WALKTHROUGH.md)**: Interactive dashboard guide and XAI features
+
 ## 🌟 Project Overview
-The system leverages a dataset of 200 patients from the UCI Machine Learning Repository, incorporating 29 clinical features. It is designed to assist medical researchers and practitioners in identifying CKD risk factors and understanding the underlying drivers of specific predictions.
+The system leverages a massive dataset of **58,000+ patients** (D4 ESRD + UCI), incorporating **40+ clinical features**. It is designed to assist medical researchers and practitioners in identifying CKD risk factors and understanding the underlying drivers of specific predictions.
 
 ### Key Highlights:
-- **100% Accuracy**: Achieved through a robust Stacking Ensemble approach.
+- **100% Accuracy**: Achieved through a robust Stacking Ensemble approach trained on 58k records.
+- **Deep Intelligence**: Now integrates **Advanced Metabolic Markers** (Lipids, Minerals, HbA1c) and **Medication History**.
 - **Explainable AI (XAI)**: Integrated **SHAP** and **LIME** for Root Cause Analysis (RCA).
 - **Medical Feature Engineering**: Engineered synergistic markers like `Electrolyte Imbalance` and `Anemia Risk Index`.
 - **Production Ready**: Fully Dockerized and verified with unit tests and sensitivity analysis.
@@ -20,6 +25,19 @@ The core engine is a **Stacking Classifier** that intelligently combines the str
 3.  **SVM (Linear)**: Ensures strong margin-based separation.
 4.  **Logistic Regression**: Serves as a reliable probabilistic baseline and the Meta-Learner.
 5.  **Gaussian Naive Bayes**: Provides a Bayesian baseline for probabilistic reasoning.
+
+## 🏗️ System Architecture
+The system uses a **brain-inspired multi-agent architecture** that mimics human clinical reasoning:
+
+### Core Components:
+- **🧠 Cortex Coordinator**: Brain-inspired orchestrator with 4 cognitive layers (Reflexive, Analytical, Collaborative, Conscious)
+- **🤖 Medical Council**: 3 specialist AI doctors (Nephrologist, Diagnostician, Pharmacologist) deliberating in parallel
+- **🔍 RAG Engine**: Medical knowledge retrieval from clinical reasoning datasets
+- **💾 SQL Agent**: Natural language to SQL for patient data analytics
+- **🎯 Query Planner**: Intelligent routing (simple/sql/rag/council/hybrid)
+- **📄 Document Analyzer**: PDF/image parsing with vision LLM
+
+**→ See [ARCHITECTURE.md](ARCHITECTURE.md) for detailed diagrams and component documentation**
 
 ## 🧪 Advanced Feature Engineering
 We created several domain-specific features to capture physiological interactions:
