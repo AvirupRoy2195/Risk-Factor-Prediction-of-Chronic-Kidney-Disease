@@ -591,12 +591,18 @@ def main():
                             safe_ev = result.evidence['safety']
                             st.warning(safe_ev.finding)
 
-                    # 3. Quality Assurance (Judge)
+                    # 3. Store Quality Score for RL (No Frontend Display)
                     if result.quality_score:
-                        with st.expander("📊 Quality Assurance (Self-Reflection)", expanded=False):
-                             c1, c2 = st.columns([1, 4])
-                             c1.metric("Confidence Score", f"{result.quality_score}/10")
-                             c2.caption("The system self-evaluated this diagnosis for consistency and safety.")
+                        try:
+                            from rl_feedback import store_feedback
+                            store_feedback(
+                                query=analysis_query,
+                                response=response,
+                                patient_context=str(pd_data),
+                                score_obj=None  # We only have the score value, not full object
+                            )
+                        except Exception:
+                            pass  # Silent fail - don't interrupt user flow
 
                 except Exception as e:
                     st.error(f"Tier 2 Analysis Error: {e}")
@@ -1048,41 +1054,27 @@ Please provide these values or upload your lab report (PDF/image) to auto-extrac
                             with col2:
                                 st.metric("CKD Risk", f"{prob:.0%}")
                         
-                        # 3. Agent-as-a-Judge Evaluation
+                        # 3. Store Quality Score for RL (Background - No Frontend Display)
                         try:
                             from judge_agent import JudgeAgent
-                            judge = JudgeAgent()
+                            from rl_feedback import store_feedback
                             
-                            with st.expander("📊 Quality Evaluation (Agent-as-a-Judge)", expanded=False):
-                                with st.spinner("Evaluating response quality..."):
-                                    score = judge.score_response(
-                                        response, 
-                                        prompt, 
-                                        str(st.session_state.patient_data)
-                                    )
-                                
-                                # Display scores as metrics
-                                m1, m2, m3, m4, m5 = st.columns(5)
-                                m1.metric("Overall", f"{score.overall}/10")
-                                m2.metric("Accuracy", f"{score.accuracy}/10")
-                                m3.metric("Safety", f"{score.safety}/10")
-                                m4.metric("Helpfulness", f"{score.helpfulness}/10")
-                                m5.metric("Evidence", f"{score.evidence}/10")
-                                
-                                # Quality bar
-                                quality_color = "🟢" if score.overall >= 8 else "🟡" if score.overall >= 6 else "🔴"
-                                st.progress(score.overall / 10, text=f"{quality_color} Quality: {score.overall}/10")
-                                
-                                # Reasoning
-                                st.caption(f"**Judge's Reasoning**: {score.reasoning}")
-                                
-                                # Suggestions for improvement
-                                if score.suggestions:
-                                    st.markdown("**Suggestions for improvement:**")
-                                    for s in score.suggestions[:3]:
-                                        st.markdown(f"- {s}")
-                        except Exception as je:
-                            st.caption(f"Judge evaluation skipped: {je}")
+                            judge = JudgeAgent()
+                            score = judge.score_response(
+                                response, 
+                                prompt, 
+                                str(st.session_state.patient_data)
+                            )
+                            
+                            # Store for RL training data collection
+                            store_feedback(
+                                query=prompt,
+                                response=response,
+                                patient_context=str(st.session_state.patient_data),
+                                score_obj=score
+                            )
+                        except Exception:
+                            pass  # Silent fail - don't interrupt user flow
 
                     except Exception as e:
                         st.error(f"Council Error: {e}")

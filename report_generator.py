@@ -203,16 +203,58 @@ def create_chat_log_pdf(patient_name, messages):
         role = msg.get("role", "unknown")
         content = msg.get("content", "")
         
-        # Format role
-        role_text = "<b>PATIENT</b>" if role == "user" else "<b>NEPHRO AI</b>"
-        style = user_style if role == "user" else ai_style
+        # Format role header
+        role_text = "PATIENT" if role == "user" else "NEPHRO AI"
+        role_style = user_style if role == "user" else ai_style
         
-        # Clean content
-        clean_content = clean_markdown(content)
+        Story.append(Paragraph(f"<b>{role_text}</b>:", role_style))
         
-        # Block
-        Story.append(Paragraph(f"{role_text}: <br/> {clean_content}", style))
-        Story.append(Spacer(1, 5))
+        # Process content line by line for proper formatting
+        lines = content.split('\n')
+        for line in lines:
+            line = line.strip()
+            if not line:
+                Story.append(Spacer(1, 4))
+                continue
+            
+            # Handle headers (## or ###)
+            if line.startswith('##') or line.startswith('###'):
+                clean_line = line.replace('#', '').strip()
+                # Remove emoji characters that don't render well in PDF
+                clean_line = re.sub(r'[\U0001F300-\U0001F9FF]', '', clean_line)
+                Story.append(Spacer(1, 8))
+                Story.append(Paragraph(f"<b>{clean_line}</b>", styles['Heading4']))
+            
+            # Handle bullet points
+            elif line.startswith('- ') or line.startswith('* ') or line.startswith('• '):
+                clean_line = clean_markdown(line[2:])
+                clean_line = re.sub(r'[\U0001F300-\U0001F9FF]', '', clean_line)
+                bullet_style = ParagraphStyle('Bullet', parent=styles['Normal'], leftIndent=20, fontSize=9, leading=12)
+                Story.append(Paragraph(f"• {clean_line}", bullet_style))
+            
+            # Handle numbered lists (1. 2. etc)
+            elif re.match(r'^\d+\.', line):
+                clean_line = clean_markdown(line)
+                clean_line = re.sub(r'[\U0001F300-\U0001F9FF]', '', clean_line)
+                num_style = ParagraphStyle('Numbered', parent=styles['Normal'], leftIndent=20, fontSize=9, leading=12)
+                Story.append(Paragraph(clean_line, num_style))
+            
+            # Handle separator lines
+            elif line.startswith('---'):
+                Story.append(HRFlowable(width="80%", thickness=0.5, color=colors.lightgrey))
+                Story.append(Spacer(1, 6))
+            
+            # Normal text
+            else:
+                clean_line = clean_markdown(line)
+                # Remove emoji characters that cause black squares
+                clean_line = re.sub(r'[\U0001F300-\U0001F9FF]', '', clean_line)
+                # Also remove other problematic Unicode
+                clean_line = re.sub(r'[■▪◾]', '-', clean_line)
+                content_style = ParagraphStyle('Content', parent=styles['Normal'], fontSize=9, leading=12)
+                Story.append(Paragraph(clean_line, content_style))
+        
+        Story.append(Spacer(1, 10))
 
     doc.build(Story)
     buffer.seek(0)
