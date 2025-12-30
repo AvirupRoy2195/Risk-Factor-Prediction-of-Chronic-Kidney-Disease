@@ -18,11 +18,11 @@ The system leverages a massive dataset of **58,000+ patients** (D4 ESRD + UCI), 
 |---------|-------------|
 | **~91% Accuracy** | Achieved through robust Stacking Ensemble with proper train/test validation |
 | **Brain-Inspired Architecture** | CortexCoordinator orchestrates cognitive layers (Reflexive → Conscious) |
-| **LLM Medical Council** | 3 specialist AI doctors deliberate in parallel (Nephrologist, Diagnostician, Pharmacologist) |
-| **Gemini 2.0 Parsing** | Automated extraction of patient metadata from PDF reports |
-| **Context-Aware Chat** | Both Deep Think and Fast modes now see uploaded PDFs and patient data |
+| **LLM Medical Council** | 3 specialist AI doctors deliberate in parallel |
+| **Agentic RL Feedback** | Self-improving system with weighted reward shaping |
+| **Context-Aware Chat** | PDF and patient data visible in all chat modes |
 | **Explainable AI (XAI)** | Integrated SHAP and LIME for Root Cause Analysis |
-| **Production Ready** | Fully Dockerized with unit tests and CI/CD pipeline |
+| **Production Ready** | Dockerized with CI/CD pipeline |
 
 ---
 
@@ -48,41 +48,58 @@ graph TB
     Conscious --> Response[Clinical Judgment]
 ```
 
-### Core Components:
-- **🧠 Cortex Coordinator** (`cortex_coordinator.py`): Brain-inspired orchestrator with 4 cognitive layers
-- **🤖 Medical Council** (`council.py`): Parallel specialist deliberation (Dr. Nemotron, Dr. Mistral, Dr. GLM)
-- **🔍 RAG Engine** (`rag_engine.py`): Medical knowledge retrieval from clinical datasets
-- **💾 SQL Agent** (`sql_agent.py`): Natural language to SQL for 58k+ patient records
-- **🎯 Query Planner** (`query_planner.py`): Intelligent routing (simple/sql/rag/council/hybrid)
-- **📄 PDF Analyzer** (`pdf_analyzer.py`): Gemini Flash 2.0 for structured report extraction
-- **⚖️ Judge Agent** (`judge_agent.py`): Self-evaluation and quality scoring
-
-**→ See [ARCHITECTURE.md](ARCHITECTURE.md) for detailed diagrams and component documentation**
+**→ See [ARCHITECTURE.md](ARCHITECTURE.md) for detailed diagrams**
 
 ---
 
-## 🧬 Model Architecture
-The core engine is a **Stacking Classifier** that combines:
-1. **XGBoost**: Complex non-linear interactions
-2. **Random Forest**: Robust tree-based classification
-3. **SVM (Linear)**: Margin-based separation
-4. **Logistic Regression**: Meta-Learner
-5. **Gaussian Naive Bayes**: Probabilistic baseline
+## 📁 Project Structure
 
-### Feature Engineering:
-- `sod_pot_ratio`: Electrolyte imbalance indicator
-- `anemia_index`: Hemoglobin × RBC count
-- `creatinine_gfr_interaction`: Kidney filtration efficiency
-- `metabolic_risk`: Combined HTN + DM risk
+### Core Application
+| File | Purpose |
+|------|---------|
+| `app.py` | Main Streamlit dashboard |
+| `cortex_coordinator.py` | Brain-inspired cognitive orchestrator |
+| `council.py` | Multi-specialist LLM deliberation |
+| `rag_engine.py` | Medical knowledge retrieval |
+| `sql_agent.py` | Natural language to SQL |
+| `query_planner.py` | Intelligent query routing |
 
----
+### AI Agents
+| File | Purpose |
+|------|---------|
+| `judge_agent.py` | Quality evaluation |
+| `safety_agent.py` | Clinical safety validation |
+| `feedback_agent.py` | Response refinement |
+| `rl_feedback.py` | Agentic RL learning system |
 
-## 🧪 Explainable AI (XAI) Lab
-Two lenses for interpretability:
-- **🎯 SHAP**: Game theory-based feature attribution
-- **🧪 LIME**: Local surrogate explanations
+### ML Pipeline
+| File | Purpose |
+|------|---------|
+| `train.py` | Model training |
+| `models.py` | Ensemble definitions |
+| `feature_engineering.py` | Feature creation |
+| `ckd_pipeline.py` | Unified inference pipeline |
+| `pipeline.py` | Data processing |
 
-![Sensitivity Analysis](sensitivity_analysis_sc.png)
+### Document Processing
+| File | Purpose |
+|------|---------|
+| `pdf_analyzer.py` | PDF text extraction |
+| `document_parser.py` | Multi-format parsing |
+| `vision_llm.py` | Gemini Flash OCR |
+| `image_analyzer.py` | Medical image analysis |
+| `report_generator.py` | PDF report export |
+
+### Support Modules
+| File | Purpose |
+|------|---------|
+| `cot_reasoning.py` | Chain-of-thought reasoning |
+| `conversation_memory.py` | Chat context tracking |
+| `medical_synonyms.py` | Query expansion |
+| `translator.py` | Multi-language support |
+| `query_understanding.py` | Intent classification |
+| `orchestrator.py` | Parallel task execution |
+| `monitoring.py` | System monitoring |
 
 ---
 
@@ -110,10 +127,9 @@ OPENROUTER_API_KEY=your_openrouter_api_key
 
 ---
 
-## 🧪 Testing & Validation
+## 🧪 Testing
 ```bash
 pytest test_pipeline.py -v
-python verify_vif.py  # Multicollinearity check
 ```
 
 ### Validation Report
@@ -131,11 +147,12 @@ python verify_vif.py  # Multicollinearity check
 
 | Metric | Value |
 |--------|-------|
-| **Python Modules** | 37+ |
+| **Python Modules** | 28 (core) |
+| **Archived Scripts** | 18 (in `_archive/`) |
 | **Training Samples** | 58,000+ |
 | **Clinical Features** | 40+ |
 | **Model Accuracy** | ~91% |
-| **LLM Agents** | 6 (Council, Judge, Safety, RAG, SQL, Cortex) |
+| **LLM Agents** | 8 |
 | **Docker Ready** | ✅ |
 | **CI/CD Pipeline** | ✅ |
 

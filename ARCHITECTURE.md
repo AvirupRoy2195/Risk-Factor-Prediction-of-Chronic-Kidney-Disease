@@ -519,7 +519,7 @@ Raw Data → Validation → Imputation → Encoding → Feature Engineering → 
 
 | Metric | Value |
 |--------|-------|
-| **Python Modules** | 40+ |
+| **Python Modules** | 28 (core) + 18 (archived) |
 | **Training Samples** | 58,000+ |
 | **Clinical Features** | 40+ |
 | **Model Accuracy** | ~91% |

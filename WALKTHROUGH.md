@@ -72,7 +72,7 @@ Model shows strong generalization with ~91% accuracy on held-out test data.
 ## 🛠️ Developer Checklist
 - **Unit Tests**: Pass via `pytest test_pipeline.py`
 - **Packaging**: Fully containerized using [Dockerfile](Dockerfile)
-- **VIF Analysis**: Multicollinearity verified via `verify_vif.py`
+- **Archived Scripts**: Development utilities in `_archive/` folder
 
 ---
 
